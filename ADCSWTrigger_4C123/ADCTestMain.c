@@ -44,6 +44,7 @@ uint32_t plot[4096]; //global arrays auto initialize to 0
 uint32_t XMax;
 uint32_t XMin;
 uint32_t newindex = 0;
+uint32_t jitter; 
 
 
 volatile uint32_t ADCvalue;
@@ -105,17 +106,16 @@ void Timer0A_Handler(void){
   PF2 ^= 0x04;                   // profile
 }
 // returns jitter in 12.5ns units
-uint32_t Time_Jitter(void){
+void Time_Jitter(void){
 	uint32_t temp;
 	uint32_t l = 0;
 	uint32_t lastT = timer[l]; 
 	uint32_t newT = timer[l+1];
 	uint32_t max = lastT-newT;
-	uint32_t min = max;
-	uint32_t jit; 
+	uint32_t min = max; 
 	for(l=1; l<1000;l++){
 		lastT= timer[l];	
-		newT = timer[1+1];
+		newT = timer[l+1];
 		if(lastT>newT){										// no rollover, calculate time difference
 			temp = lastT-newT;
 		} else if(lastT<newT) {						//rollover occured, calculate time difference
@@ -129,8 +129,7 @@ uint32_t Time_Jitter(void){
 			min = temp;
 		}
 	}
-	jit = max - min; 
-	return jit;
+	jitter = max - min; 
 }
 
 // Counts frequency of ADC outputs and stores data in array plot[]
@@ -152,7 +151,7 @@ void ADC_Noise(void){
 }
 
 
-int main(void){
+int main(void){	
   PLL_Init(Bus80MHz);                   // 80 MHz
   SYSCTL_RCGCGPIO_R |= 0x20;            // activate port F
   ADC0_InitSWTriggerSeq3_Ch9();         // allow time to finish activating
@@ -169,8 +168,11 @@ int main(void){
   while(newindex<1000){
     PF1 ^= 0x02;  											// toggles when running in main
   }
-	uint32_t Jitter = Time_Jitter();
+
+	Time_Jitter();
 	ADC_Noise();
-	while(1){}
+	while(1){
+	PF1 ^= 0x02;
+	}
 }
 
