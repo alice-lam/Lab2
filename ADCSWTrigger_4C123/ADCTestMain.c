@@ -37,9 +37,13 @@ void EnableInterrupts(void);  // Enable interrupts
 long StartCritical (void);    // previous I bit, disable interrupts
 void EndCritical(long sr);    // restore I bit to previous value
 void WaitForInterrupt(void);  // low power mode
+
 uint32_t timer[1000];
 uint32_t ADC[1000];
-uint32_t newindex;
+uint32_t plot[4096]; //global arrays auto initialize to 0
+uint32_t XMax;
+uint32_t XMin;
+uint32_t newindex = 0;
 
 
 volatile uint32_t ADCvalue;
@@ -65,33 +69,94 @@ void Timer0A_Init100HzInt(void){
   NVIC_PRI4_R = (NVIC_PRI4_R&0x00FFFFFF)|0x40000000; // top 3 bits
   NVIC_EN0_R = 1<<19;              // enable interrupt 19 in NVIC
 }
+
+// ***************** TIMER1_Init ****************
+// Activate TIMER1 interrupts to run user task periodically
+// Inputs:  task is a pointer to a user function
+//          period in units (1/clockfreq)
+// Outputs: none
+void Timer1_Init(void){
+  SYSCTL_RCGCTIMER_R |= 0x02;   // 0) activate TIMER1
+	// PeriodicTask = task;          // user function
+  TIMER1_CTL_R = 0x00000000;    // 1) disable TIMER1A during setup
+  TIMER1_CFG_R = 0x00000000;    // 2) configure for 32-bit mode
+  TIMER1_TAMR_R = 0x00000002;   // 3) configure for periodic mode, default down-count settings
+  TIMER1_TAILR_R = 0xFFFFFFFF;    // 4) reload value
+  TIMER1_TAPR_R = 0;            // 5) bus clock resolution
+  TIMER1_ICR_R = 0x00000001;    // 6) clear TIMER1A timeout flag
+// TIMER1_IMR_R = 0x00000001;    // 7) arm timeout interrupt
+  NVIC_PRI5_R = (NVIC_PRI5_R&0xFFFF00FF)|0x00008000; // 8) priority 4
+// interrupts enabled in the main program after all devices initialized
+// vector number 37, interrupt number 21
+  NVIC_EN0_R = 1<<21;           // 9) enable IRQ 21 in NVIC
+  TIMER1_CTL_R = 0x00000001;    // 10) enable TIMER1A
+}
+
 void Timer0A_Handler(void){
   TIMER0_ICR_R = TIMER_ICR_TATOCINT;    // acknowledge timer0A timeout
   PF2 ^= 0x04;                   // profile
   PF2 ^= 0x04;                   // profile
   ADCvalue = ADC0_InSeq3();
+	if (newindex<1000){
+		timer[newindex] = TIMER1_TAR_R;
+		ADC[newindex] = ADCvalue;
+		newindex++;
+	}
   PF2 ^= 0x04;                   // profile
 }
-
-void Timer1_Handler(void){
-uint32_t temp;
-	
-if (newindex<1000){
-	temp = TIMER1_TAR_R;
-	temp = TIMER1_TAR_R - temp;
-	timer[newindex] = temp;
-	ADC[newindex] = ADCvalue;
-	newindex++;
+// returns jitter in 12.5ns units
+int32_t Time_Jitter(void){
+	uint32_t temp;
+	uint32_t l = 0;
+	uint32_t lastT = timer[l]; 
+	uint32_t newT = timer[l+1];
+	uint32_t max = lastT-newT;
+	uint32_t min = max;
+	uint32_t jitter; 
+	for(l=1; l<1000;l++){
+		lastT= timer[l];	
+		newT = timer[1+1];
+		if(lastT>newT){										// no rollover, calculate time difference
+			temp = lastT-newT;
+		} else if(lastT<newT) {						//rollover occured, calculate time difference
+			temp = 0xFFFFFFFF - newT +lastT; 
+		} else{temp = 0;}									//time difference of 0, error 
+		// update min and max values
+		if (temp>max){
+			max = temp;
+		}
+		if (temp<min){
+			min = temp;
+		}
+	}
+	jitter = max - min; 
+	return jitter;
 }
 
-
+void ADC_Noise(void){
+	uint32_t max = ADC[0];
+	uint32_t min = ADC[0];
+	//uint32_t ymax = 0; // may be useful to impliment later for graphing bounds
+  for(int32_t l=0; l<1000;l++){
+		plot[ADC[l]]++;
+		if (ADC[l]>max){
+			max = ADC[l];
+		}
+		if (ADC[l]<min){
+			min = ADC[l];
+		}
+	}
+	XMax = max;
+	XMin = min;
 }
+
 
 int main(void){
   PLL_Init(Bus80MHz);                   // 80 MHz
   SYSCTL_RCGCGPIO_R |= 0x20;            // activate port F
   ADC0_InitSWTriggerSeq3_Ch9();         // allow time to finish activating
   Timer0A_Init100HzInt();               // set up Timer0A for 100 Hz interrupts
+	Timer1_Init();
   GPIO_PORTF_DIR_R |= 0x06;             // make PF2, PF1 out (built-in LED)
   GPIO_PORTF_AFSEL_R &= ~0x06;          // disable alt funct on PF2, PF1
   GPIO_PORTF_DEN_R |= 0x06;             // enable digital I/O on PF2, PF1
@@ -104,27 +169,4 @@ int main(void){
     PF1 ^= 0x02;  // toggles when running in main
   }
 }
-void (*PeriodicTask)(void);   // user function
-// ***************** TIMER1_Init ****************
-// Activate TIMER1 interrupts to run user task periodically
-// Inputs:  task is a pointer to a user function
-//          period in units (1/clockfreq)
-// Outputs: none
-void Timer1_Init(void(*task)(void), uint32_t period){
-  SYSCTL_RCGCTIMER_R |= 0x02;   // 0) activate TIMER1
-  PeriodicTask = task;          // user function
-  TIMER1_CTL_R = 0x00000000;    // 1) disable TIMER1A during setup
-  TIMER1_CFG_R = 0x00000000;    // 2) configure for 32-bit mode
-  TIMER1_TAMR_R = 0x00000002;   // 3) configure for periodic mode, default down-count settings
-  TIMER1_TAILR_R = 0xFFFFFFFF;    // 4) reload value
-  TIMER1_TAPR_R = 0;            // 5) bus clock resolution
-  TIMER1_ICR_R = 0x00000001;    // 6) clear TIMER1A timeout flag
-// TIMER1_IMR_R = 0x00000001;    // 7) arm timeout interrupt
-  NVIC_PRI5_R = (NVIC_PRI5_R&0xFFFF00FF)|0x00008000; // 8) priority 4
-// interrupts enabled in the main program after all devices initialized
-// vector number 37, interrupt number 21
-//  NVIC_EN0_R = 1<<21;           // 9) enable IRQ 21 in NVIC
-//  TIMER1_CTL_R = 0x00000001;    // 10) enable TIMER1A
-}
-
 
