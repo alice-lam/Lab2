@@ -72,6 +72,7 @@ void PLL_Init(uint32_t freq){
   // 6) enable use of PLL by clearing BYPASS
   SYSCTL_RCC2_R &= ~SYSCTL_RCC2_BYPASS2;
 }
+
 void (*PeriodicTask)(void);   // user function
 // ***************** TIMER1_Init ****************
 // Activate TIMER1 interrupts to run user task periodically
