@@ -37,8 +37,9 @@ void EnableInterrupts(void);  // Enable interrupts
 long StartCritical (void);    // previous I bit, disable interrupts
 void EndCritical(long sr);    // restore I bit to previous value
 void WaitForInterrupt(void);  // low power mode
-uint32_t time[1000];
+uint32_t timer[1000];
 uint32_t ADC[1000];
+uint32_t newindex;
 
 volatile uint32_t ADCvalue;
 // This debug function initializes Timer0A to request interrupts
@@ -70,6 +71,21 @@ void Timer0A_Handler(void){
   ADCvalue = ADC0_InSeq3();
   PF2 ^= 0x04;                   // profile
 }
+
+void Timer1_Handler(void){
+uint32_t temp;
+	
+if (newindex<1000){
+	temp = TIMER1_TAR_R;
+	temp = TIMER1_TAR_R - temp;
+	timer[newindex] = temp;
+	ADC[newindex] = ADCvalue;
+	newindex++;
+}
+
+
+}
+
 int main(void){
   PLL_Init(Bus80MHz);                   // 80 MHz
   SYSCTL_RCGCGPIO_R |= 0x20;            // activate port F
