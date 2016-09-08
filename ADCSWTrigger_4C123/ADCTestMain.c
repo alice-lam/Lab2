@@ -41,6 +41,7 @@ uint32_t timer[1000];
 uint32_t ADC[1000];
 uint32_t newindex;
 
+
 volatile uint32_t ADCvalue;
 // This debug function initializes Timer0A to request interrupts
 // at a 100 Hz frequency.  It is similar to FreqMeasure.c.
