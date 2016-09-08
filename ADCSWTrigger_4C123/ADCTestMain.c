@@ -105,14 +105,14 @@ void Timer0A_Handler(void){
   PF2 ^= 0x04;                   // profile
 }
 // returns jitter in 12.5ns units
-int32_t Time_Jitter(void){
+uint32_t Time_Jitter(void){
 	uint32_t temp;
 	uint32_t l = 0;
 	uint32_t lastT = timer[l]; 
 	uint32_t newT = timer[l+1];
 	uint32_t max = lastT-newT;
 	uint32_t min = max;
-	uint32_t jitter; 
+	uint32_t jit; 
 	for(l=1; l<1000;l++){
 		lastT= timer[l];	
 		newT = timer[1+1];
@@ -129,10 +129,11 @@ int32_t Time_Jitter(void){
 			min = temp;
 		}
 	}
-	jitter = max - min; 
-	return jitter;
+	jit = max - min; 
+	return jit;
 }
 
+// Counts frequency of ADC outputs and stores data in array plot[]
 void ADC_Noise(void){
 	uint32_t max = ADC[0];
 	uint32_t min = ADC[0];
@@ -163,10 +164,13 @@ int main(void){
                                         // configure PF2 as GPIO
   GPIO_PORTF_PCTL_R = (GPIO_PORTF_PCTL_R&0xFFFFF00F)+0x00000000;
   GPIO_PORTF_AMSEL_R = 0;               // disable analog functionality on PF
-  PF2 = 0;                      // turn off LED
+  PF2 = 0;                     				 	// turn off LED
   EnableInterrupts();
-  while(1){
-    PF1 ^= 0x02;  // toggles when running in main
+  while(newindex<1000){
+    PF1 ^= 0x02;  											// toggles when running in main
   }
+	uint32_t Jitter = Time_Jitter();
+	ADC_Noise();
+	while(1){}
 }
 
