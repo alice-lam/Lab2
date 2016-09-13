@@ -3,7 +3,63 @@
 <pre>
 <h1>µVision Build Log</h1>
 <h2>Project:</h2>
-C:\Users\kinan\Documents\7.0 Courses 2016 Fall\EE 445L\Lab2\ADCSWTrigger_4C123\ADCSWTrigger.uvproj
-Project File Date:  09/08/2016
+C:\Users\lenalim\Documents\ValvanoWareTM4C123\Lab2\ADCSWTrigger_4C123\ADCSWTrigger.uvproj
+Project File Date:  09/07/2016
 
 <h2>Output:</h2>
+Rebuild target 'ADCSWTrigger'
+assembling startup.s...
+compiling ADCSWTrigger.c...
+compiling ADCTestMain.c...
+ADCTestMain.c(150): warning:  #550-D: variable "test" was set but never used
+        uint32_t test = 0;
+ADCTestMain.c(186): warning:  #550-D: variable "jitter" was set but never used
+        uint32_t jitter;
+ADCTestMain.c: 2 warnings, 0 errors
+compiling PLL.c...
+compiling ST7735.c...
+linking...
+Program Size: Code=5800 RO-data=2064 RW-data=80 ZI-data=25760  
+".\ADCSWTrigger.axf" - 0 Error(s), 2 Warning(s).
+</pre>
+</body>
+</html>
+ared implicitly
+                ST7735_DrawPixel(x1, j, ST7735_BLUE);
+ADCTestMain.c(179): error:  #20: identifier "ST7735_BLUE" is undefined
+                ST7735_DrawPixel(x1, j, ST7735_BLUE);
+ADCTestMain.c(185): warning:  #550-D: variable "jitter" was set but never used
+        uint32_t jitter;
+ADCTestMain.c: 4 warnings, 2 errors
+compiling PLL.c...
+compiling ST7735.c...
+".\ADCSWTrigger.axf" - 2 Error(s), 4 Warning(s).
+Target not created
+a out
+ST7735.c(710): error:  #20: identifier "SYSCTL_RCGCSSI_R" is undefined
+    SYSCTL_RCGCSSI_R |= 0x01;  // activate SSI0
+ST7735.c(711): error:  #20: identifier "SYSCTL_RCGCGPIO_R" is undefined
+    SYSCTL_RCGCGPIO_R |= 0x01; // activate port A
+ST7735.c(712): error:  #20: identifier "SYSCTL_PRGPIO_R" is undefined
+    while((SYSCTL_PRGPIO_R&0x01)==0){}; // allow time for clock to start
+ST7735.c(716): error:  #20: identifier "GPIO_PORTA_DIR_R" is undefined
+    GPIO_PORTA_DIR_R |= 0xC8;             // make PA3,6,7 out
+ST7735.c(717): error:  #20: identifier "GPIO_PORTA_AFSEL_R" is undefined
+    GPIO_PORTA_AFSEL_R &= ~0xC8;          // disable alt funct on PA3,6,7
+ST7735.c(718): error:  #20: identifier "GPIO_PORTA_DEN_R" is undefined
+    GPIO_PORTA_DEN_R |= 0xC8;             // enable digital I/O on PA3,6,7
+ST7735.c(720): error:  #20: identifier "GPIO_PORTA_PCTL_R" is undefined
+    GPIO_PORTA_PCTL_R = (GPIO_PORTA_PCTL_R&0x00FF0FFF)+0x00000000;
+ST7735.c(721): error:  #20: identifier "GPIO_PORTA_AMSEL_R" is undefined
+    GPIO_PORTA_AMSEL_R &= ~0xC8;          // disable analog functionality on PA3,6,7
+ST7735.c(736): error:  #20: identifier "SSI0_CR1_R" is undefined
+    SSI0_CR1_R &= ~SSI_CR1_SSE;           // disable SSI
+ST7735.c(739): error:  #20: identifier "SSI0_CC_R" is undefined
+    SSI0_CC_R = (SSI0_CC_R&~SSI_CC_CS_M)+SSI_CC_CS_SYSPLL;
+ST7735.c(745): error:  #20: identifier "SSI0_CPSR_R" is undefined
+    SSI0_CPSR_R = (SSI0_CPSR_R&~SSI_CPSR_CPSDVSR_M)+10; // must be even number
+ST7735.c(746): error:  #20: identifier "SSI0_CR0_R" is undefined
+    SSI0_CR0_R &= ~(SSI_CR0_SCR_M |       // SCR = 0 (8 Mbps data rate)
+ST7735.c: 0 warnings, 17 errors
+".\ADCSWTrigger.axf" - 17 Error(s), 2 Warning(s).
+Target not created

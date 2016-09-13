@@ -31,6 +31,7 @@
 #include "ADCSWTrigger.h"
 #include "../inc/tm4c123gh6pm.h"
 #include "PLL.h"
+#include "ST7735.h"
 //#include <cstdio>
 
 
@@ -166,6 +167,20 @@ void ADC_Noise(void){
 void printthis (void){
  printf("%d", 5);
 }
+
+void ST7735_Line(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
+	// Draws one line on the ST7735 color LCD
+	//  Inputs: (x1,y1) is the start point, (x2,y2) is the end point
+	    
+	for(int16_t i = x1; i < x2; i += 1) {
+		ST7735_DrawPixel(i, y1, ST7735_BLUE);
+	}
+	
+	for(int16_t j = y1; j < y2; j += 1) {
+		ST7735_DrawPixel(x1, j, ST7735_BLUE);
+	}
+}
+
 
 int main(void){	
 	uint32_t jitter;
