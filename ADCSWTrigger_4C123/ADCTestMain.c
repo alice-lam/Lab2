@@ -26,9 +26,13 @@
 // bottom of X-ohm potentiometer connected to ground
 // top of X-ohm potentiometer connected to +3.3V 
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "ADCSWTrigger.h"
 #include "../inc/tm4c123gh6pm.h"
 #include "PLL.h"
+//#include <cstdio>
+
 
 #define PF2             (*((volatile uint32_t *)0x40025010))
 #define PF1             (*((volatile uint32_t *)0x40025008))
@@ -41,10 +45,12 @@ void WaitForInterrupt(void);  // low power mode
 uint32_t timer[1000];
 uint32_t ADC[1000];
 uint32_t plot[4096]; //global arrays auto initialize to 0
+uint32_t* addre0 = &plot[0];
+uint32_t* addre999 = &plot[999];
 uint32_t XMax;
 uint32_t XMin;
 uint32_t newindex = 0;
-uint32_t jitter; 
+
 
 
 volatile uint32_t ADCvalue;
@@ -106,21 +112,23 @@ void Timer0A_Handler(void){
   PF2 ^= 0x04;                   // profile
 }
 // returns jitter in 12.5ns units
-void Time_Jitter(void){
+uint32_t Time_Jitter(void){
 	uint32_t temp;
 	uint32_t l = 0;
 	uint32_t lastT = timer[l]; 
 	uint32_t newT = timer[l+1];
 	uint32_t max = lastT-newT;
 	uint32_t min = max; 
-	for(l=1; l<1000;l++){
+	for(l=1; l<999;l++){
 		lastT= timer[l];	
 		newT = timer[l+1];
 		if(lastT>newT){										// no rollover, calculate time difference
 			temp = lastT-newT;
 		} else if(lastT<newT) {						//rollover occured, calculate time difference
 			temp = 0xFFFFFFFF - newT +lastT; 
-		} else{temp = 0;}									//time difference of 0, error 
+		} else{
+		temp = 0;
+		}									//time difference of 0, error 
 		// update min and max values
 		if (temp>max){
 			max = temp;
@@ -129,16 +137,22 @@ void Time_Jitter(void){
 			min = temp;
 		}
 	}
-	jitter = max - min; 
+	temp = max - min; 
+	return temp; 
 }
 
 // Counts frequency of ADC outputs and stores data in array plot[]
 void ADC_Noise(void){
 	uint32_t max = ADC[0];
 	uint32_t min = ADC[0];
+	uint32_t in;
+	uint32_t test = 0;
 	//uint32_t ymax = 0; // may be useful to impliment later for graphing bounds
   for(int32_t l=0; l<1000;l++){
-		plot[ADC[l]]++;
+		in = ADC[l];
+		test = plot[in];
+		plot[in] = plot[in] + 1;
+		test = plot[in];
 		if (ADC[l]>max){
 			max = ADC[l];
 		}
@@ -149,9 +163,13 @@ void ADC_Noise(void){
 	XMax = max;
 	XMin = min;
 }
-
+void printthis (void){
+ printf("%d", 5);
+}
 
 int main(void){	
+	uint32_t jitter;
+	jitter = 0;
   PLL_Init(Bus80MHz);                   // 80 MHz
   SYSCTL_RCGCGPIO_R |= 0x20;            // activate port F
   ADC0_InitSWTriggerSeq3_Ch9();         // allow time to finish activating
@@ -165,14 +183,15 @@ int main(void){
   GPIO_PORTF_AMSEL_R = 0;               // disable analog functionality on PF
   PF2 = 0;                     				 	// turn off LED
   EnableInterrupts();
+	printthis();
   while(newindex<1000){
     PF1 ^= 0x02;  											// toggles when running in main
   }
 
-	Time_Jitter();
+	jitter = Time_Jitter();
 	ADC_Noise();
 	while(1){
-	PF1 ^= 0x02;
+		PF1 ^= 0x02;
 	}
 }
 
